@@ -2,17 +2,15 @@ package com.tambo.btc;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 
 import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Block;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Peer;
-import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.params.TestNet3Params;
@@ -34,7 +32,7 @@ public class AppTest {
 	String hashOfFirstTestnetBlock = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943";
 
 	@Test
-	public void testGetBlock() {
+	public void testGetBlock() throws InterruptedException, ExecutionException {
 		NetworkParameters networkParameters = TestNet3Params.get();
 
 		BlockStore blockStore = new MemoryBlockStore(networkParameters);
@@ -44,29 +42,23 @@ public class AppTest {
 		try {
 
 			chain = new BlockChain(networkParameters, blockStore);
-			Peer peer = new Peer(networkParameters, chain, new PeerAddress(InetAddress.getLocalHost()), "testApp1",
-					"0.0.1");
-			ListenableFuture<Peer> connectionOpenFuture = peer.getConnectionOpenFuture();
+			PeerGroup peerGroup = new PeerGroup(networkParameters, chain);
+			peerGroup.start();
+			
 
-			connectionOpenFuture.addListener(new Thread() {
-				@Override
-				public void run() {
-					System.out.println("got a listener...");
-				}
-			}, Executors.newCachedThreadPool());
-			Peer peer2 = connectionOpenFuture.get();
+			while (peerGroup.getConnectedPeers().size() < 5) {
+				System.out.println("peer count " + peerGroup.getConnectedPeers());
+				Thread.sleep(500);
+			}
+
+			ListenableFuture<Block> blockFuture = peerGroup.getConnectedPeers().get(0)
+					.getBlock(Sha256Hash.wrap(hashOfFirstTestnetBlock));
+			Block firstBlock = blockFuture.get();
+
+			System.out.println("genesis block is: " + firstBlock);
 
 		} catch (BlockStoreException bse) {
 			bse.printStackTrace();
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 
