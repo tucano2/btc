@@ -13,6 +13,7 @@ import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
@@ -32,23 +33,42 @@ public class AppTest {
 	String hashOfFirstTestnetBlock = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943";
 
 	@Test
+	public void testSendBits() throws BlockStoreException {
+		NetworkParameters netParams = TestNet3Params.get();
+		BlockStore blockStore = new MemoryBlockStore(netParams);
+		Wallet wallet = new Wallet(netParams);
+		BlockChain chain = new BlockChain(netParams, wallet, blockStore);
+		
+		PeerGroup peers = new PeerGroup(netParams);
+		
+		peers.start();
+		
+		
+		
+	}
+	
+	@Test
+	@Ignore
 	public void testGetBlock() throws InterruptedException, ExecutionException {
-		NetworkParameters networkParameters = TestNet3Params.get();
+		NetworkParameters netParams = TestNet3Params.get();
 
-		BlockStore blockStore = new MemoryBlockStore(networkParameters);
+		BlockStore blockStore = new MemoryBlockStore(netParams);
 
 		BlockChain chain;
 
 		try {
 
-			chain = new BlockChain(networkParameters, blockStore);
-			PeerGroup peerGroup = new PeerGroup(networkParameters, chain);
-			peerGroup.start();
+			chain = new BlockChain(netParams, blockStore);
+			PeerGroup peerGroup = new PeerGroup(netParams, chain);
+			peerGroup.setUserAgent("sample app", "0.1");
+			peerGroup.addPeerDiscovery(new DnsDiscovery(netParams));
 			
+			peerGroup.start();
+						
 
 			while (peerGroup.getConnectedPeers().size() < 5) {
 				System.out.println("peer count " + peerGroup.getConnectedPeers());
-				Thread.sleep(500);
+				Thread.sleep(5000);
 			}
 
 			ListenableFuture<Block> blockFuture = peerGroup.getConnectedPeers().get(0)
