@@ -1,7 +1,6 @@
 package com.tambo.btc;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.NetworkParameters;
@@ -9,38 +8,47 @@ import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.TestNet3Params;
-import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.MemoryBlockStore;
-import org.bitcoinj.store.UnreadableWalletException;
 
-public class CreateWallet {
+public abstract class WalletAction {
 
-	public static void main(String[] args) throws BlockStoreException, UnreadableWalletException, IOException {
+	private final Wallet wallet;
 
-		String walletPath = args[0];
-
+	public WalletAction(String walletPath) throws Exception {
 		NetworkParameters networkParameters = TestNet3Params.get();
-		Wallet wallet = new Wallet(networkParameters);
+		wallet = new Wallet(networkParameters);
 
 		File walletFile = new File(walletPath);
 		if (walletFile.exists()) {
 			System.out.println("loading wallet");
 			wallet.loadFromFile(walletFile, null);
 		} else {
-			System.out.println("saving wallet");
-			wallet.saveToFile(walletFile);
+			throw new IllegalStateException("wallet not found");
 		}
-
-		System.out.println(wallet.currentReceiveAddress());
 
 		BlockChain chain = new BlockChain(networkParameters, wallet, new MemoryBlockStore(networkParameters));
 
 		PeerGroup peerGroup = new PeerGroup(networkParameters, chain);
-		peerGroup.addWallet(wallet);
 		peerGroup.setUserAgent("sample app", "0.1");
 		peerGroup.addPeerDiscovery(new DnsDiscovery(networkParameters));
+		peerGroup.addWallet(wallet);
 		peerGroup.start();
 
+		while (peerGroup.numConnectedPeers() < 3) {
+			System.out.println("waiting for more peers. current peer count=" + peerGroup.numConnectedPeers());
+			Thread.sleep(500);
+		}
+	}
+
+	static String parseCmdParams(String[] args) {
+		if (args == null || args.length < 1) {
+			throw new IllegalStateException("Usage: <full wallet file path>");
+		}
+		return args[0];
+	}
+
+	Wallet getWallet() {
+		return wallet;
 	}
 
 }
