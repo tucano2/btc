@@ -38,6 +38,7 @@ public abstract class WalletAction {
 			System.out.println("waiting for more peers. current peer count=" + peerGroup.numConnectedPeers());
 			Thread.sleep(500);
 		}
+		System.out.println("got this many peers=" + peerGroup.numConnectedPeers());
 	}
 
 	static String parseCmdParams(String[] args) {
