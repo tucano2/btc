@@ -8,7 +8,7 @@ public class CheckBalance extends WalletAction {
 
 	public static void main(String[] args) throws Exception {
 		CheckBalance checkBalance = new CheckBalance(WalletAction.parseCmdParams(args));
-		System.out.println(checkBalance.getBalance());
+		System.out.println(checkBalance.getBalance()); 
 	}
 
 	private String getBalance() {
